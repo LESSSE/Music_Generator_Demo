@@ -29,7 +29,7 @@ def midiToNoteStateMatrix(midifile, squash=True, span=span):
 
                   tick += int(midi_data.resolution / 8)
 
-          if midi_data.tick_to_time(tick) > midi_data.estimate_tempo():
+          if midi_data.tick_to_time(tick) > midi_data.get_end_time():
                condition = False
   S = np.array(statematrix)
   statematrix = np.asarray(statematrix).tolist()
