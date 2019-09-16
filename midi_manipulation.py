@@ -23,7 +23,7 @@ def midiToNoteStateMatrix(midifile, squash=True, span=span):
           for i in range(len(midi_data.instruments)): #For each track
                   track = midi_data.instruments[i]
                   notes = track.notes 
-                  notes = filter(lambda x: x.start <= midi_data.tick_to_time(tick) and x.end >= midi_data.tick_to_time(tick) and x.pitch > lowerBound and x.pitch < upperBound, notes)
+                  notes = filter(lambda x: x.start <= midi_data.tick_to_time(tick) and x.end > midi_data.tick_to_time(tick) and x.pitch > lowerBound and x.pitch < upperBound, notes)
                   for n in notes:
                       state[n.pitch-lowerBound] = 1
 
