@@ -15,6 +15,7 @@ def midiToNoteStateMatrix(midifile, squash=True, span=span):
 
   condition = True
   print(midi_data.resolution / 4)
+  print(midi_data.get_end_time())
   while condition:
           if tick % (midi_data.resolution / 4) == 0:
               # Crossed a note boundary. Create a new state, defaulting to holding notes
