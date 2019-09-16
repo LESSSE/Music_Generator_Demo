@@ -9,13 +9,11 @@ span = upperBound-lowerBound
 
 def midiToNoteStateMatrix(midifile, squash=True, span=span):
   midi_data = pretty_midi.PrettyMIDI(midifile)
-  
+  final = ceil(midi_data.get_end_time() / midi_data.tick_to_time(int(midi_data.resolution / 4)))*midi_data.resolution / 4 - 1
   statematrix = []
   tick = 0
 
   condition = True
-  print(midi_data.resolution / 4)
-  print(midi_data.get_end_time())
   while condition:
           if tick % (midi_data.resolution / 4) == 0:
               # Crossed a note boundary. Create a new state, defaulting to holding notes
@@ -28,9 +26,9 @@ def midiToNoteStateMatrix(midifile, squash=True, span=span):
                   for n in notes:
                       state[n.pitch-lowerBound] = 1
 
-                  tick += 1
+          tick += 1
                   
-          if midi_data.tick_to_time(tick) > midi_data.get_end_time():
+          if tick > final:
                condition = False
   S = np.array(statematrix)
   statematrix = np.asarray(statematrix).tolist()
