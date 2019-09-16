@@ -1,5 +1,6 @@
 import pretty_midi
 import numpy as np
+from math import ceil
 
 
 lowerBound = 24
