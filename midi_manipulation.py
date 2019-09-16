@@ -27,8 +27,8 @@ def midiToNoteStateMatrix(midifile, squash=True, span=span):
                   for n in notes:
                       state[n.pitch-lowerBound] = 1
 
-                  tick += int(midi_data.resolution / 8)
-
+                  tick += 2
+                  
           if midi_data.tick_to_time(tick) > midi_data.get_end_time():
                condition = False
   S = np.array(statematrix)
