@@ -1,4 +1,4 @@
-import midi
+import pretty_midi
 import numpy as np
 
 
@@ -8,66 +8,33 @@ span = upperBound-lowerBound
 
 
 def midiToNoteStateMatrix(midifile, squash=True, span=span):
-    pattern = midi.read_midifile(midifile)
+  midi_data = pretty_midi.PrettyMIDI(midifile)
+  
+  statematrix = []
+  tick = 0
 
-    timeleft = [track[0].tick for track in pattern]
+  condition = True
 
-    posns = [0 for track in pattern]
+  while condition:
+          if tick % (midi_data.resolution / 4) == 0:
+              # Crossed a note boundary. Create a new state, defaulting to holding notes
+              state = [[0,0] for x in range(span)]
+              statematrix.append(state)
+          for i in range(len(midi_data.instruments)): #For each track
+                  track = midi_data.instruments[i]
+                  notes = track.notes 
+                  notes = filter(lambda x: x.start <= midi_data.tick_to_time(tick) and x.end >= midi_data.tick_to_time(tick) and x.pitch > lowerBound and x.pitch < upperBound, notes)
+                  for n in notes:
+                      state[n.pitch-lowerBound] = 1
 
-    statematrix = []
-    time = 0
+                  tick += int(midi_data.resolution / 8)
 
-    state = [[0,0] for x in range(span)]
-    statematrix.append(state)
-    condition = True
-    while condition:
-        if time % (pattern.resolution / 4) == (pattern.resolution / 8):
-            # Crossed a note boundary. Create a new state, defaulting to holding notes
-            oldstate = state
-            state = [[oldstate[x][0],0] for x in range(span)]
-            statematrix.append(state)
-        for i in range(len(timeleft)): #For each track
-            if not condition:
-                break
-            while timeleft[i] == 0:
-                track = pattern[i]
-                pos = posns[i]
+          if midi_data.tick_to_time(tick) > midi_data.estimate_tempo():
+               condition = False
+  S = np.array(statematrix)
+  statematrix = np.asarray(statematrix).tolist()
+  return statematrix
 
-                evt = track[pos]
-                if isinstance(evt, midi.NoteEvent):
-                    if (evt.pitch < lowerBound) or (evt.pitch >= upperBound):
-                        pass
-                        # print "Note {} at time {} out of bounds (ignoring)".format(evt.pitch, time)
-                    else:
-                        if isinstance(evt, midi.NoteOffEvent) or evt.velocity == 0:
-                            state[evt.pitch-lowerBound] = [0, 0]
-                        else:
-                            state[evt.pitch-lowerBound] = [1, 1]
-                elif isinstance(evt, midi.TimeSignatureEvent):
-                    if evt.numerator not in (2, 4):
-                        # We don't want to worry about non-4 time signatures. Bail early!
-                        # print "Found time signature event {}. Bailing!".format(evt)
-                        out =  statematrix
-                        condition = False
-                        break
-                try:
-                    timeleft[i] = track[pos + 1].tick
-                    posns[i] += 1
-                except IndexError:
-                    timeleft[i] = None
-
-            if timeleft[i] is not None:
-                timeleft[i] -= 1
-
-        if all(t is None for t in timeleft):
-            break
-
-        time += 1
-
-    S = np.array(statematrix)
-    statematrix = np.hstack((S[:, :, 0], S[:, :, 1]))
-    statematrix = np.asarray(statematrix).tolist()
-    return statematrix
 
 def noteStateMatrixToMidi(statematrix, name="example", span=span):
     statematrix = np.array(statematrix)
