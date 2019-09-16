@@ -18,7 +18,7 @@ def midiToNoteStateMatrix(midifile, squash=True, span=span):
   while condition:
           if tick % (midi_data.resolution / 4) == 0:
               # Crossed a note boundary. Create a new state, defaulting to holding notes
-              state = [[0,0] for x in range(span)]
+              state = [0 for x in range(span)]
               statematrix.append(state)
           for i in range(len(midi_data.instruments)): #For each track
                   track = midi_data.instruments[i]
