@@ -36,44 +36,48 @@ def midiToNoteStateMatrix(midifile, squash=True, span=span):
   return statematrix
 
 
-def noteStateMatrixToMidi(statematrix, name="example", span=span):
+def noteStateMatrixToMidi(statematrix, span=span):
     statematrix = np.array(statematrix)
-    if not len(statematrix.shape) == 3:
-        statematrix = np.dstack((statematrix[:, :span], statematrix[:, span:]))
-    statematrix = np.asarray(statematrix)
-    pattern = midi.Pattern()
-    track = midi.Track()
-    pattern.append(track)
+    tatematrix = np.asarray(statematrix)
+    midi_data = pretty_midi.PrettyMIDI()
+    track = pretty_midi.Instrument(0)
+    midi_data.instruments.append(track)
     
     span = upperBound-lowerBound
-    tickscale = 55
+    tickscale = 64
     
-    lastcmdtime = 0
-    prevstate = [[0,0] for x in range(span)]
-    for time, state in enumerate(statematrix + [prevstate[:]]):  
-        offNotes = []
-        onNotes = []
-        for i in range(span):
-            n = state[i]
-            p = prevstate[i]
-            if p[0] == 1:
-                if n[0] == 0:
-                    offNotes.append(i)
-                elif n[1] == 1:
-                    offNotes.append(i)
-                    onNotes.append(i)
-            elif n[0] == 1:
-                onNotes.append(i)
-        for note in offNotes:
-            track.append(midi.NoteOffEvent(tick=(time-lastcmdtime)*tickscale, pitch=note+lowerBound))
-            lastcmdtime = time
-        for note in onNotes:
-            track.append(midi.NoteOnEvent(tick=(time-lastcmdtime)*tickscale, velocity=40, pitch=note+lowerBound))
-            lastcmdtime = time
-            
-        prevstate = state
-    
-    eot = midi.EndOfTrackEvent(tick=1)
-    track.append(eot)
+    prevstate = [0 for x in range(span)]
 
-    midi.write_midifile("{}.mid".format(name), pattern)
+    onNotes = {}
+
+    for time, state in enumerate(statematrix + [prevstate[:]]): 
+        offNotes = {}  
+        for i in range(span):
+            if i in onNotes and i not in list(state.nonzero()[0]):
+                offNotes[i] = (onNotes[i],time*tickscale)
+                onNotes.pop(i,None)
+        for i in state.nonzero()[0]:
+            if i not in onNotes:
+                onNotes[i] = time*tickscale
+
+        for note in offNotes:
+            track.notes.append(pretty_midi.Note(start=midi_data.tick_to_time(offNotes[note][0]), end=midi_data.tick_to_time(offNotes[note][1]), pitch=note+lowerBound, velocity=120))
+    
+    sorted(track.notes,key=lambda x: x.start)
+    
+    return midi_data
+  
+  
+  
+def join_midi_list(samples):
+  midi_data = samples[0]
+  time = 0
+  for m in samples[1:]:
+      final = midi_data.tick_to_time(int(ceil(midi_data.get_end_time() / midi_data.tick_to_time(int(midi_data.resolution / 4)))*midi_data.resolution / 4)) 
+      def alter_time(x):
+          x.start += final
+          x.end += final
+          return x
+      new_notes = map(alter_time, m.instruments[0].notes)
+      midi_data.instruments[0].notes += list(new_notes)
+  return midi_data
